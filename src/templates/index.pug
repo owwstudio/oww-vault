@@ -1,0 +1,59 @@
+- var firstProject = projects[0] || {title: "Selected work", description: "", tags: []}
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    meta(name="description" content="Selected website projects by OWW Studio.")
+    meta(name="theme-color" content="#ffffff")
+    title OWW Studio — Selected Work
+  body
+    a.skip-link(href="#project-information") Selected project
+    include partials/navbar.pug
+    main
+      section.hero(aria-label="Introduction" data-hero)
+        h1.hero__title Websites and identities that live up to your ambition
+      section.project-information#project-information(aria-label="Selected project" tabindex="-1" data-information)
+        h2(data-title)= firstProject.title
+        p(data-description)= firstProject.description
+        ul.project-information__tags(data-tags)
+          each tag in firstProject.tags
+            li= tag
+        a.project-information__visit(data-visit hidden href="#") Visit website
+      section.gallery-frame(aria-label="Website portfolio" tabindex="-1" data-gallery)
+        .gallery-track(data-track)
+          .gallery-group(data-group)
+            each project, index in projects
+              article.project-slot(data-index=index data-id=project.id)
+                - const cardClass = `project-card project-card--${index % 3}`
+                button(class=cardClass type="button" data-card aria-haspopup="dialog" aria-controls="project-inspect" aria-label=`Inspect ${project.title}`)
+                  if project.image
+                    img(src=project.image alt=project.imageAlt || project.title width="1200" height="1000" loading=index === 0 ? 'eager' : 'lazy' decoding="async")
+                  span.project-card__open(aria-hidden="true")
+                    img(src="./assets/arrow-square.svg" width="14" height="14" alt="")
+      - const ticksPerProject = 8
+      nav.project-navigation(aria-label="Project navigation" data-project-navigation style=`--project-count: ${projects.length}; --nav-ticks: ${ticksPerProject}`)
+        .project-navigation__viewport
+          .project-navigation__track
+            each copy in [0, 1, 2, 3, 4, 5, 6, 7, 8]
+              .project-navigation__group(data-nav-copy=copy aria-hidden=copy !== 4 ? 'true' : undefined)
+                each project, index in projects
+                  each tick in Array.from({length: ticksPerProject}, (_, tick) => tick)
+                    - const position = index + tick / ticksPerProject
+                    - const label = tick === 0 ? `Show ${project.title}` : `${project.title} — ${Math.round(tick / ticksPerProject * 100)}% toward ${projects[(index + 1) % projects.length].title}`
+                    button.project-navigation__item(type="button" data-project-nav=position tabindex=copy !== 4 ? '-1' : undefined aria-label=label)
+                      span(aria-hidden="true")
+        .project-navigation__tooltip(aria-hidden="true" data-nav-tooltip)
+          span(data-nav-label)= firstProject.title
+          span(data-nav-label)
+      .scroll-surface(data-scroll aria-hidden="true" tabindex="-1")
+        .scroll-spacer(data-spacer)
+    .inspect-cursor(aria-hidden="true" data-inspect-cursor) Inspect
+    dialog.project-inspect#project-inspect(aria-label="Project preview" data-inspect)
+      .project-inspect__backdrop(data-inspect-backdrop aria-hidden="true")
+      .project-inspect__panel(data-inspect-panel)
+        .project-inspect__image(aria-hidden="true" data-inspect-image)
+        button.project-inspect__close(type="button" data-inspect-close aria-label="Close project preview" autofocus)
+          span(aria-hidden="true")
+          span(aria-hidden="true")
+    script(type="module" src="/src/scripts/main.js")

@@ -1,0 +1,13 @@
+header.navbar
+  .navbar__contact
+    a(href="mailto:hello@owwstudio.com") Hello@owwstudio.com
+  button.navbar__home(type="button" aria-label="OWW Studio — back to the introduction" data-home)
+    img(src="./assets/oww-logo.svg" width="50.25" height="24" alt="OWW Studio")
+  .navbar__actions
+    button.sound-toggle(type="button" data-sound aria-pressed="false" aria-label="Turn sound on" title="Turn sound on")
+      svg.sound-toggle__icon(width="30" height="24" viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false")
+        path(data-sound-wave d="M3 12 H27")
+    a.navbar__intro(href="mailto:hello@owwstudio.com?subject=Schedule%20an%20intro")
+      span Schedule an Intro
+      span.navbar__intro-icon
+        img(src="./assets/arrow-square.svg" width="14" height="14" alt="")

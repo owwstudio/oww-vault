@@ -1,0 +1,128 @@
+[
+  {
+    "id": "Statement",
+    "title": "Statement",
+    "description": "Strategy, visual systems, branding and high-end web design. We define your identity and support your growth at every touchpoint.",
+    "tags": ["Webflow", "GSAP", "CMS"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Continental",
+    "title": "Continental",
+    "description": "A digital home for an independent design studio, built around bold type and fluid motion.",
+    "tags": ["Web Design", "Development", "GSAP"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Hermo",
+    "title": "Hermo",
+    "description": "A fresh visual identity and website for a lifestyle brand with a thoughtful point of view.",
+    "tags": ["Brand Identity", "Web Design", "Strategy"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Aethere",
+    "title": "Aethere",
+    "description": "An exploratory identity and website concept shaped by airy layouts, expressive typography, and subtle motion.",
+    "tags": ["Brand Identity", "Web Design", "GSAP"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Glowdent",
+    "title": "Glowdent",
+    "description": "A welcoming website concept with clear information, gentle colors, and a simple journey from discovery to contact.",
+    "tags": ["Web Design", "Development", "CMS"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Goby",
+    "title": "Goby",
+    "description": "A playful digital concept that pairs bold graphics with lively interactions and an approachable visual language.",
+    "tags": ["Art Direction", "Web Design", "GSAP"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Sustain",
+    "title": "Sustain",
+    "description": "A considered identity and website concept built around natural tones, purposeful storytelling, and generous space.",
+    "tags": ["Brand Identity", "Strategy", "Web Design"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Staybill",
+    "title": "Staybill",
+    "description": "A practical digital concept with a structured layout, friendly typography, and clear paths through every page.",
+    "tags": ["Web Design", "Development", "CMS"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Creamate",
+    "title": "Creamate",
+    "description": "A warm and expressive brand concept combining soft colors, characterful type, and a website made for discovery.",
+    "tags": ["Brand Identity", "Art Direction", "Web Design"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Ela-de-pure",
+    "title": "Ela de pure",
+    "description": "A refined visual identity and website concept with quiet typography, balanced compositions, and thoughtful details.",
+    "tags": ["Brand Identity", "Web Design", "Development"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Auralink",
+    "title": "Auralink",
+    "description": "A connected digital concept that brings a clear visual system together with fluid navigation and subtle transitions.",
+    "tags": ["Strategy", "Web Design", "GSAP"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Echo",
+    "title": "Echo",
+    "description": "An expressive website concept built around rhythmic layouts, strong typography, and stories that unfold through motion.",
+    "tags": ["Art Direction", "Development", "GSAP"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Silence",
+    "title": "Silence",
+    "description": "A minimal identity and website concept that gives content room to breathe through restrained colors and calm interactions.",
+    "tags": ["Brand Identity", "Web Design", "Strategy"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  },
+  {
+    "id": "Elevd",
+    "title": "Elevd",
+    "description": "A confident digital concept pairing precise layouts with bold type and a flexible system for presenting selected work.",
+    "tags": ["Web Design", "Development", "CMS"],
+    "image": "",
+    "imageAlt": "",
+    "url": ""
+  }
+]
