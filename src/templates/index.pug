@@ -19,7 +19,6 @@ html(lang="en")
         ul.project-information__tags(data-tags)
           each tag in firstProject.tags
             li= tag
-        a.project-information__visit(data-visit hidden href="#") Visit website
       section.gallery-frame(aria-label="Website portfolio" tabindex="-1" data-gallery)
         .gallery-track(data-track)
           .gallery-group(data-group)
@@ -40,7 +39,7 @@ html(lang="en")
                 each project, index in projects
                   each tick in Array.from({length: ticksPerProject}, (_, tick) => tick)
                     - const position = index + tick / ticksPerProject
-                    - const label = tick === 0 ? `Show ${project.title}` : `${project.title} — ${Math.round(tick / ticksPerProject * 100)}% toward ${projects[(index + 1) % projects.length].title}`
+                    - const label = `Show ${project.title}`
                     button.project-navigation__item(type="button" data-project-nav=position tabindex=copy !== 4 ? '-1' : undefined aria-label=label)
                       span(aria-hidden="true")
         .project-navigation__tooltip(aria-hidden="true" data-nav-tooltip)
@@ -49,10 +48,45 @@ html(lang="en")
       .scroll-surface(data-scroll aria-hidden="true" tabindex="-1")
         .scroll-spacer(data-spacer)
     .inspect-cursor(aria-hidden="true" data-inspect-cursor) Inspect
+    each project, index in projects
+      template(data-inspect-template=index)
+        .project-inspect__layout
+          aside.project-inspect__information(aria-label="Project information" data-inspect-information data-lenis-prevent tabindex="0")
+            header
+              h2= project.title
+              p= project.overview || project.description
+            .project-inspect__detail
+              h3 Year
+              span.project-inspect__tag= project.year
+            .project-inspect__detail
+              h3 Tech
+              ul.project-inspect__tags
+                each tag in project.tags
+                  li.project-inspect__tag= tag
+            section
+              h3 Challenge
+              p= project.challenge
+            if project.snapshots && project.snapshots.length
+              section.project-inspect__snapshots
+                h3 Snapshot
+                each snapshot in project.snapshots
+                  figure.project-inspect__snapshot(style=`--snapshot-ratio: ${snapshot.ratio}; --snapshot-offset: ${snapshot.offset}`)
+                    img(src=snapshot.image alt=snapshot.alt width="1210" height="4096" loading="lazy" decoding="async")
+          section.project-inspect__preview(aria-label=`${project.title} preview` data-inspect-preview)
+            - const preview = project.preview
+            if preview && preview.src && preview.type === 'video'
+              video.project-inspect__media(data-inspect-media data-src=preview.src poster=preview.poster || undefined muted loop playsinline controls preload="none" aria-label=`${project.title} video preview`)
+            else if preview && preview.src && preview.type === 'gif'
+              img.project-inspect__media(data-inspect-media data-src=preview.src alt=preview.alt || `${project.title} animated preview`)
+            else
+              .project-inspect__empty
+                p Preview coming soon
     dialog.project-inspect#project-inspect(aria-label="Project preview" data-inspect)
       .project-inspect__backdrop(data-inspect-backdrop aria-hidden="true")
       .project-inspect__panel(data-inspect-panel)
-        .project-inspect__image(aria-hidden="true" data-inspect-image)
+        .project-inspect__content(data-inspect-content data-lenis-prevent)
+      .project-inspect__image(aria-hidden="true" data-inspect-image)
+      .project-inspect__controls(data-inspect-controls)
         button.project-inspect__close(type="button" data-inspect-close aria-label="Close project preview" autofocus)
           span(aria-hidden="true")
           span(aria-hidden="true")

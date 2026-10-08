@@ -3,10 +3,28 @@
     "id": "Statement",
     "title": "Statement",
     "description": "Strategy, visual systems, branding and high-end web design. We define your identity and support your growth at every touchpoint.",
+    "overview": "Strategy, visual systems, branding and high-end web design. We define your identity and support your growth at every touchpoint. Strategy, visual systems, branding and high-end web design. We define your identity and support your growth at every touchpoint.",
     "tags": ["Webflow", "GSAP", "CMS"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "https://statement-5c8886.webflow.io/",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Strategy, visual systems, branding and high-end web design. We define your identity and support your growth at every touchpoint.",
+    "snapshots": [
+      {
+        "image": "./projects/statement-snapshot.png",
+        "alt": "Statement weekly group rides section",
+        "ratio": "370 / 205",
+        "offset": "-130.54%"
+      },
+      {
+        "image": "./projects/statement-snapshot.png",
+        "alt": "Statement cycling community section",
+        "ratio": "370 / 195",
+        "offset": "-350.06%"
+      }
+    ]
   },
   {
     "id": "Continental",
@@ -15,7 +33,10 @@
     "tags": ["Web Design", "Development", "GSAP"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "https://continentals.webflow.io/",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Hermo",
@@ -24,7 +45,10 @@
     "tags": ["Brand Identity", "Web Design", "Strategy"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "https://hermo.webflow.io/",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Aethere",
@@ -33,7 +57,10 @@
     "tags": ["Brand Identity", "Web Design", "GSAP"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "https://owwteam.dev/aethere/",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Glowdent",
@@ -42,7 +69,10 @@
     "tags": ["Web Design", "Development", "CMS"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Goby",
@@ -51,7 +81,10 @@
     "tags": ["Art Direction", "Web Design", "GSAP"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Sustain",
@@ -60,7 +93,10 @@
     "tags": ["Brand Identity", "Strategy", "Web Design"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Staybill",
@@ -69,7 +105,10 @@
     "tags": ["Web Design", "Development", "CMS"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Creamate",
@@ -78,7 +117,10 @@
     "tags": ["Brand Identity", "Art Direction", "Web Design"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Ela-de-pure",
@@ -87,7 +129,10 @@
     "tags": ["Brand Identity", "Web Design", "Development"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Auralink",
@@ -96,7 +141,10 @@
     "tags": ["Strategy", "Web Design", "GSAP"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Echo",
@@ -105,7 +153,10 @@
     "tags": ["Art Direction", "Development", "GSAP"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Silence",
@@ -114,7 +165,10 @@
     "tags": ["Brand Identity", "Web Design", "Strategy"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "https://owwteam.dev/silence/",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   },
   {
     "id": "Elevd",
@@ -123,6 +177,9 @@
     "tags": ["Web Design", "Development", "CMS"],
     "image": "",
     "imageAlt": "",
-    "url": ""
+    "url": "",
+    "preview": {"type": "video", "src": ""},
+    "year": "2026",
+    "challenge": "Bring the visual identity into a clear, responsive website while keeping navigation and motion easy to follow."
   }
 ]

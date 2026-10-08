@@ -53,6 +53,8 @@ export function createGallery(projects, sound) {
   let navigationIdle;
   let tooltipIndex = null;
   let tooltipLayer = 0;
+  let soundPosition = null;
+  let soundUpdatedAt = 0;
 
   function hideTooltip(immediate = false) {
     hoveredItem = null;
@@ -131,7 +133,17 @@ export function createGallery(projects, sound) {
     refreshNavigation();
   }
 
-  function updateNavigation(position) {
+  function updateNavigation(position, audible = false) {
+    const elapsed = Math.max(1 / 60, gsap.ticker.time - soundUpdatedAt);
+    if (audible && soundPosition !== null) {
+      // Unwrap both directions so the loop seam is one step, not a whole ruler.
+      const delta = mod(position - soundPosition + projects.length / 2, projects.length) - projects.length / 2;
+      const before = Math.round(soundPosition * ticksPerProject);
+      const after = Math.round((soundPosition + delta) * ticksPerProject);
+      if (before !== after) sound.play('tick', Math.abs(delta) / elapsed / 2);
+    }
+    soundPosition = position;
+    soundUpdatedAt = gsap.ticker.time;
     navigation.style.setProperty('--nav-position', String(position));
     const nearest = Math.round((4 * projects.length + position) * ticksPerProject);
     if (nearest !== currentTick) {
@@ -159,7 +171,7 @@ export function createGallery(projects, sound) {
     });
   }
 
-  function updateInformation(index, audible = true) {
+  function updateInformation(index, animate = true) {
     if (index === active && information.dataset.initialized) return;
     active = index;
     information.dataset.initialized = 'true';
@@ -172,21 +184,14 @@ export function createGallery(projects, sound) {
       li.textContent = tag;
       return li;
     }));
-    const visit = $('[data-visit]');
-    visit.hidden = !project.url;
-    visit.href = project.url || '#';
-    visit.target = '_blank';
-    visit.rel = 'noopener noreferrer';
-    if (audible) {
-      sound.play('tick');
-      if (!motion.matches) {
-        gsap.killTweensOf(information.children);
-        gsap.fromTo(information.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.025 });
-      }
+    if (animate && !motion.matches) {
+      gsap.killTweensOf(information.children);
+      gsap.fromTo(information.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.025 });
     }
   }
 
   function measure() {
+    soundPosition = null;
     const oldCycle = cycle;
     const oldTravel = travel;
     const oldPhase = mode === 'loop' && oldCycle ? mod(oldTravel + (pausedScroll ?? lenis.scroll), oldCycle) / oldCycle : 0;
@@ -230,7 +235,7 @@ export function createGallery(projects, sound) {
     });
     lenis.on('scroll', ({ scroll, velocity }) => {
       if (pausedScroll !== null) return;
-      render(scroll);
+      render(scroll, false, Math.abs(velocity) > 0.01);
       if (Math.abs(velocity) > 0.01) noteNavigationMovement();
     });
     if (inspection?.isOpen) lenis.stop();
@@ -252,7 +257,7 @@ export function createGallery(projects, sound) {
     changingMode = false;
   }
 
-  function render(scroll, force = false) {
+  function render(scroll, force = false, audible = false) {
     if (pausedScroll !== null && !force) return;
     renderedScroll = scroll;
     const phase = mode === 'loop' ? mod(travel + scroll, cycle) : Math.max(0, scroll);
@@ -273,7 +278,7 @@ export function createGallery(projects, sound) {
     // Change metadata only when a card's center crosses the viewport center.
     // Unwrap the phase so the same rule works across either loop seam.
     const focusOffset = top + cardHeight / 2 - height / 2;
-    updateNavigation(mod((phase - focusOffset) / slot, projects.length));
+    updateNavigation(mod((phase - focusOffset) / slot, projects.length), audible);
     const centered = Math.round((phase - focusOffset) / slot);
     if (Math.abs(phase - (focusOffset + centered * slot)) <= 0.5) {
       // Also recognize a programmatic scroll that stops exactly at the center.
@@ -298,20 +303,14 @@ export function createGallery(projects, sound) {
 
   function select(index) {
     if (pausedScroll !== null) return;
-    index = mod(index, projects.length);
+    // Every ruler tick selects the project named in its hover tooltip.
+    index = mod(Math.floor(index), projects.length);
     if (motion.matches) {
-      // Minor ticks represent positions between card centers, not new projects.
-      const position = Math.min(index, projects.length - 1);
-      const before = Math.floor(position);
-      const after = Math.min(before + 1, projects.length - 1);
-      const center = (item) => {
-        const rect = original.children[item].querySelector('[data-card]').getBoundingClientRect();
-        return window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
-      };
-      const start = center(before);
-      window.scrollTo({ top: start + (center(after) - start) * (position - before), behavior: 'instant' });
-      syncStaticInformation();
-      if (Number.isInteger(position)) updateInformation(position);
+      const rect = original.children[index].querySelector('[data-card]').getBoundingClientRect();
+      const top = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
+      window.scrollTo({ top, behavior: 'instant' });
+      syncStaticInformation(false);
+      updateInformation(index);
       return;
     }
     if (mode !== 'loop') startLoop();
@@ -322,7 +321,7 @@ export function createGallery(projects, sound) {
     lenis.scrollTo(lenis.scroll + delta, { duration: 0.7 });
   }
 
-  function syncStaticInformation() {
+  function syncStaticInformation(audible = true) {
     if (!motion.matches || pausedScroll !== null) return;
     const scroll = window.scrollY;
     const direction = Math.sign(scroll - lastStaticScroll);
@@ -349,19 +348,20 @@ export function createGallery(projects, sound) {
         position = index + (next === undefined ? 0 : clamp((scroll - center) / (next - center)));
       }
     });
-    updateNavigation(position);
+    updateNavigation(position, audible && direction !== 0);
     if (direction) noteNavigationMovement();
     lastStaticScroll = scroll;
   }
 
   function home() {
+    soundPosition = null;
     hideTooltip(true);
     resetNavigationMovement();
     if (motion.matches) {
       window.scrollTo({ top: 0, behavior: 'instant' });
       lastStaticScroll = window.scrollY;
       updateInformation(0, false);
-      syncStaticInformation();
+      syncStaticInformation(false);
       return;
     }
     mode = 'intro';
@@ -378,6 +378,7 @@ export function createGallery(projects, sound) {
 
   function initialize() {
     inspection?.close(true);
+    soundPosition = null;
     hideTooltip(true);
     resetNavigationMovement();
     lenis?.destroy();
@@ -398,7 +399,7 @@ export function createGallery(projects, sound) {
       mode = 'static';
       document.body.dataset.mode = mode;
       updateInformation(active, false);
-      syncStaticInformation();
+      syncStaticInformation(false);
       return;
     }
     for (const side of ['before', 'after']) {
@@ -446,10 +447,14 @@ export function createGallery(projects, sound) {
     const button = event.target.closest('[data-project-nav]');
     if (button?.matches(':focus-visible')) select(Number(button.dataset.projectNav));
   });
-  $('[data-visit]').addEventListener('click', () => sound.play('select'));
   motion.addEventListener('change', initialize);
-  window.addEventListener('resize', () => { if (!motion.matches) measure(); });
-  window.addEventListener('scroll', syncStaticInformation, { passive: true });
+  window.addEventListener('resize', () => {
+    soundPosition = null;
+    if (!motion.matches) measure();
+    else syncStaticInformation(false);
+  });
+  window.addEventListener('scroll', () => syncStaticInformation(), { passive: true });
+  document.addEventListener('visibilitychange', () => { soundPosition = null; });
   inspection = createInspect(projects, {
     sound,
     pause() {

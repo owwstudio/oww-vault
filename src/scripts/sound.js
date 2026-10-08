@@ -1,12 +1,12 @@
 import { gsap } from 'gsap';
 
-// A tiny original synthesized click. Replace this with decoded samples later
-// if a more specific sound character is needed.
+// Original wheel-like ticks: a warm body with a brief, filtered noise attack.
 export function createSound(button) {
   const wave = button.querySelector('[data-sound-wave]');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const easeWave = gsap.parseEase('sine.inOut');
   let context;
+  let buffers;
   let enabled = false;
   let lastTick = -Infinity;
   let toggling = false;
@@ -69,8 +69,10 @@ export function createSound(button) {
       if (!enabled) {
         context ??= new (window.AudioContext || window.webkitAudioContext)();
         if (context.state === 'suspended') await context.resume();
+        buffers ??= { tick: createClickBuffer(false), select: createClickBuffer(true) };
       }
       enabled = !enabled;
+      lastTick = -Infinity;
       updateButton();
       if (enabled) play('select');
     } catch {
@@ -84,24 +86,48 @@ export function createSound(button) {
     }
   }
 
-  function play(type = 'tick') {
+  function createClickBuffer(select) {
+    const duration = select ? 0.036 : 0.028;
+    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
+    const samples = buffer.getChannelData(0);
+    const frequency = select ? 440 : 680;
+    let seed = 17;
+    let filtered = 0;
+    let low = 0;
+    let peak = 0;
+    const filter = 1 - Math.exp(-2 * Math.PI * 4200 / context.sampleRate);
+    const bass = 1 - Math.exp(-2 * Math.PI * 900 / context.sampleRate);
+    for (let i = 0; i < samples.length; i++) {
+      const time = i / context.sampleRate;
+      // Deterministic noise keeps the timbre consistent across every tick.
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      filtered += filter * (seed / 2147483648 - 1 - filtered);
+      low += bass * (filtered - low);
+      const attack = 1 - Math.exp(-time / 0.00045);
+      const tail = Math.min(1, (samples.length - 1 - i) / (context.sampleRate * 0.002));
+      const body = Math.sin(2 * Math.PI * frequency * time) * Math.exp(-time / (select ? 0.007 : 0.0045));
+      const edge = ((filtered - low) * 0.6 + Math.sin(2 * Math.PI * 1900 * time) * 0.12) * Math.exp(-time / 0.0018);
+      samples[i] = (body * 0.8 + edge) * attack * tail;
+      peak = Math.max(peak, Math.abs(samples[i]));
+    }
+    for (let i = 0; i < samples.length; i++) samples[i] *= 0.8 / peak;
+    return buffer;
+  }
+
+  function play(type = 'tick', speed = 0) {
     if (!enabled || context?.state !== 'running' || document.hidden) return;
     const now = context.currentTime;
-    if (type === 'tick' && now - lastTick < 0.14) return;
+    if (type === 'tick' && now - lastTick < 0.11) return;
     lastTick = now;
-    const oscillator = context.createOscillator();
+    const source = context.createBufferSource();
     const gain = context.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(type === 'tick' ? 1250 : 850, now);
-    oscillator.frequency.exponentialRampToValueAtTime(180, now + 0.035);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(type === 'tick' ? 0.07 : 0.12, now + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
-    oscillator.connect(gain);
+    source.buffer = buffers[type === 'tick' ? 'tick' : 'select'];
+    const pace = Math.min(1, Math.max(0, speed));
+    gain.gain.setValueAtTime(type === 'tick' ? 0.075 * (1 - pace * 0.28) : 0.1, now);
+    source.connect(gain);
     gain.connect(context.destination);
-    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
-    oscillator.start(now);
-    oscillator.stop(now + 0.06);
+    source.onended = () => { source.disconnect(); gain.disconnect(); };
+    source.start(now);
   }
 
   button.addEventListener('click', toggle);

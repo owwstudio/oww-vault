@@ -7,6 +7,8 @@ export function createInspect(projects, { pause, resume, sound }) {
   const backdrop = dialog.querySelector('[data-inspect-backdrop]');
   const image = dialog.querySelector('[data-inspect-image]');
   const closeButton = dialog.querySelector('[data-inspect-close]');
+  const controls = dialog.querySelector('[data-inspect-controls]');
+  const content = dialog.querySelector('[data-inspect-content]');
   const cursor = document.querySelector('[data-inspect-cursor]');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const hover = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -15,10 +17,61 @@ export function createInspect(projects, { pause, resume, sound }) {
   let source = null;
   let closing = false;
   let animation;
+  let informationAnimation;
+  let informationBlocks = [];
+  let informationStarted = false;
   let cursorVisible = false;
   let right = 0;
   let returnBounds;
+  let destinationBounds;
   let coverState;
+
+  function positionContent() {
+    const bounds = expandedBounds();
+    // Keep the final layout width throughout expansion/reversal to avoid reflow.
+    content.style.width = `${bounds.width}px`;
+    gsap.set(panel, bounds);
+    gsap.set(controls, { right, top: Math.max(12, bounds.top - 20) });
+  }
+
+  function previewBounds() {
+    const rect = content.querySelector('[data-inspect-preview]').getBoundingClientRect();
+    return { right: window.innerWidth - rect.right, top: rect.top, width: rect.width, height: rect.height };
+  }
+
+  function prepareInformation() {
+    informationBlocks = [...content.querySelector('[data-inspect-information]').children];
+    informationStarted = false;
+    gsap.set(informationBlocks, { autoAlpha: motion.matches ? 1 : 0, y: motion.matches ? 0 : 8 });
+    if (!motion.matches) {
+      informationAnimation = gsap.to(informationBlocks, {
+        autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: 'power2.inOut', paused: true,
+      });
+    }
+  }
+
+  function revealInformation() {
+    if (!source || closing) return;
+    if (motion.matches) {
+      informationAnimation?.kill();
+      gsap.set(informationBlocks, { autoAlpha: 1, y: 0 });
+    } else if (!informationStarted) informationAnimation?.play();
+    informationStarted = true;
+  }
+
+  function mountPreview() {
+    if (!source || closing) return;
+    revealInformation(); // Also handles the zero-duration reduced-motion transition.
+    content.inert = false;
+    const media = content.querySelector('[data-inspect-media]');
+    if (!media || media.hasAttribute('src')) return;
+    // Start media after expansion; resize keeps the current playback position.
+    media.src = media.dataset.src;
+    if (media.tagName === 'VIDEO') {
+      media.muted = true;
+      if (!motion.matches) media.play().catch(() => {}); // Controls remain available if autoplay is blocked.
+    }
+  }
 
   function hideCursor() {
     cursorVisible = false;
@@ -51,6 +104,10 @@ export function createInspect(projects, { pause, resume, sound }) {
   function finishClose() {
     animation?.kill();
     animation = null;
+    informationAnimation?.kill();
+    informationAnimation = null;
+    informationBlocks = [];
+    informationStarted = false;
     const card = source;
     if (!card) return;
     card.style.removeProperty('visibility');
@@ -69,6 +126,13 @@ export function createInspect(projects, { pause, resume, sound }) {
     source = null;
     closing = false;
     image.replaceChildren();
+    const media = content.querySelector('[data-inspect-media]');
+    if (media) {
+      if (media.tagName === 'VIDEO') media.pause();
+      media.removeAttribute('src');
+      if (media.tagName === 'VIDEO') media.load();
+    }
+    content.replaceChildren();
     document.body.classList.remove('inspect-open');
     resume();
   }
@@ -76,18 +140,38 @@ export function createInspect(projects, { pause, resume, sound }) {
   function close(immediate = false) {
     if (!source || (closing && !immediate)) return;
     closing = true;
+    // Stop the reveal at its current position before starting the exit.
+    informationAnimation?.kill();
+    content.inert = true;
+    content.querySelector('video')?.pause();
+    closeButton.focus({ preventScroll: true });
     if (immediate || motion.matches || animation.progress() === 0) { finishClose(); return; }
+    if (animation.progress() === 1) {
+      // The mobile preview may have moved while the user scrolled the popup.
+      destinationBounds = previewBounds();
+      animation.kill();
+      animation = createTransition();
+      animation.progress(1);
+    }
+    if (informationStarted) {
+      // Exit from the current reveal state, in parallel with the card reversal.
+      informationAnimation = gsap.to(informationBlocks, {
+        autoAlpha: 0, y: 8, duration: 0.55, ease: 'power2.inOut',
+      });
+    }
     // Reverse the same path, even when opening has not finished yet.
     animation.reverse();
   }
 
   function createTransition() {
     const duration = motion.matches ? 0 : 0.85;
-    return gsap.timeline({ paused: true, onReverseComplete: finishClose })
-      .fromTo(panel, returnBounds, { ...expandedBounds(), duration, ease: 'power3.inOut' }, 0)
+    const fadeDuration = motion.matches ? 0 : 0.6;
+    return gsap.timeline({ paused: true, onComplete: mountPreview, onReverseComplete: finishClose })
+      .fromTo(image, { ...returnBounds, autoAlpha: 1 }, { ...destinationBounds, duration, ease: 'power3.inOut' }, 0)
       .fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: motion.matches ? 0 : 0.5 }, 0)
-      .fromTo(image, { opacity: 1 }, { opacity: 0, duration: motion.matches ? 0 : 0.4 }, 0)
-      .fromTo(closeButton, { autoAlpha: 0 }, { autoAlpha: 1, duration: motion.matches ? 0 : 0.25 }, motion.matches ? 0 : 0.35);
+      .fromTo(image, { autoAlpha: 1 }, { autoAlpha: 0, duration: fadeDuration, ease: 'power2.inOut' }, duration)
+      .fromTo(controls, { autoAlpha: 0 }, { autoAlpha: 1, duration: motion.matches ? 0 : 0.25 }, motion.matches ? 0 : 0.35)
+      .fromTo(content, { autoAlpha: 0 }, { autoAlpha: 1, duration: fadeDuration, ease: 'power2.inOut', onStart: revealInformation }, duration);
   }
 
   function open(card) {
@@ -98,7 +182,12 @@ export function createInspect(projects, { pause, resume, sound }) {
     returnBounds = cardBounds();
     right = returnBounds.right;
     const index = Number(card.closest('[data-index]').dataset.index);
-    dialog.setAttribute('aria-label', `${projects[index].title} — project preview`);
+    const project = projects[index];
+    dialog.setAttribute('aria-label', `${project.title} — project preview`);
+    content.replaceChildren(document.querySelector(`[data-inspect-template="${index}"]`).content.cloneNode(true));
+    content.inert = true;
+    prepareInformation();
+    positionContent();
     const cover = card.querySelector(':scope > img');
     image.replaceChildren();
     if (cover) {
@@ -110,15 +199,17 @@ export function createInspect(projects, { pause, resume, sound }) {
       cover.style.transform = snapshot.style.transform;
       image.append(snapshot);
     }
-    gsap.set(panel, returnBounds);
-    gsap.set([backdrop, closeButton], { opacity: 0 });
-    gsap.set(closeButton, { visibility: 'visible' });
-    gsap.set(image, { opacity: 1 });
+    image.style.backgroundColor = getComputedStyle(card).backgroundColor;
+    content.querySelector('[data-inspect-preview]').style.backgroundColor = image.style.backgroundColor;
+    gsap.set(image, { ...returnBounds, autoAlpha: 1 });
+    gsap.set([backdrop, controls, content], { opacity: 0 });
+    gsap.set(controls, { visibility: 'visible' });
     document.body.classList.add('inspect-open');
     // Capture geometry before showModal changes focus or native scroll locking.
     dialog.showModal();
     card.style.visibility = 'hidden';
     closeButton.focus({ preventScroll: true });
+    destinationBounds = previewBounds();
     sound.play('select');
     animation = createTransition();
     animation.play();
@@ -148,11 +239,14 @@ export function createInspect(projects, { pause, resume, sound }) {
     animation?.kill();
     returnBounds = cardBounds();
     right = returnBounds.right;
+    positionContent();
+    destinationBounds = previewBounds();
     if (motion.matches) {
       gsap.set(panel, expandedBounds());
       gsap.set(backdrop, { opacity: 1 });
-      gsap.set(image, { opacity: 0 });
-      gsap.set(closeButton, { autoAlpha: 1 });
+      gsap.set(image, { ...destinationBounds, autoAlpha: 0 });
+      gsap.set([controls, content], { autoAlpha: 1 });
+      mountPreview();
       return;
     }
     animation = createTransition();
