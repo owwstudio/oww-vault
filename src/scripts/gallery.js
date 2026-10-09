@@ -1,6 +1,7 @@
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { createInspect } from './inspect.js';
+import { mostVisibleProject } from './visibility.js';
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const mod = (value, size) => ((value % size) + size) % size;
@@ -41,7 +42,6 @@ export function createGallery(projects, sound) {
   let heroDocked = false;
   let heroDockY = 0;
   let heroDockScale = 1;
-  let lastPhase = null;
   let cardMinWidth = 0.546;
   let cardMaxWidth = 0.667;
   let lastStaticScroll = window.scrollY;
@@ -202,7 +202,6 @@ export function createGallery(projects, sound) {
     const mobile = window.matchMedia('(max-width: 700px)').matches;
     cardMinWidth = mobile ? 0.84 : 0.546;
     cardMaxWidth = mobile ? 1 : 0.667;
-    lastPhase = null;
     const titleStyle = getComputedStyle(heroTitle);
     const contactVisible = getComputedStyle(contact).display !== 'none';
     const anchor = contactVisible ? contact : navbar;
@@ -275,26 +274,15 @@ export function createGallery(projects, sound) {
       const expand = proximity * proximity * (3 - 2 * proximity);
       element.style.width = `${(cardMinWidth + (cardMaxWidth - cardMinWidth) * expand) * 100}%`;
     });
-    // Change metadata only when a card's center crosses the viewport center.
-    // Unwrap the phase so the same rule works across either loop seam.
+    // Compare the visible portion of slots, including copies at loop seams.
+    updateInformation(mostVisibleProject(cards
+      .filter(({ group }) => mode === 'loop' || group === 1)
+      .map(({ index, group }) => {
+        const y = top + group * cycle + index * slot - cycle - phase;
+        return { index, top: y, bottom: y + slot };
+      }), height, active));
     const focusOffset = top + cardHeight / 2 - height / 2;
     updateNavigation(mod((phase - focusOffset) / slot, projects.length), audible);
-    const centered = Math.round((phase - focusOffset) / slot);
-    if (Math.abs(phase - (focusOffset + centered * slot)) <= 0.5) {
-      // Also recognize a programmatic scroll that stops exactly at the center.
-      updateInformation(mod(centered, projects.length));
-    } else if (lastPhase !== null) {
-      const delta = mode === 'loop' ? mod(phase - lastPhase + cycle / 2, cycle) - cycle / 2 : phase - lastPhase;
-      const nextPhase = lastPhase + delta;
-      if (delta > 0) {
-        const reached = Math.floor((nextPhase - focusOffset) / slot);
-        if (focusOffset + reached * slot > lastPhase) updateInformation(mod(reached, projects.length));
-      } else if (delta < 0) {
-        const reached = Math.ceil((nextPhase - focusOffset) / slot);
-        if (focusOffset + reached * slot < lastPhase) updateInformation(mod(reached, projects.length));
-      }
-    }
-    lastPhase = phase;
     if (pausedScroll === null && mode === 'intro' && scroll >= travel && !changingMode) {
       changingMode = true;
       queueMicrotask(() => startLoop(scroll - travel));
@@ -310,7 +298,6 @@ export function createGallery(projects, sound) {
       const top = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
       window.scrollTo({ top, behavior: 'instant' });
       syncStaticInformation(false);
-      updateInformation(index);
       return;
     }
     if (mode !== 'loop') startLoop();
@@ -325,22 +312,15 @@ export function createGallery(projects, sound) {
     if (!motion.matches || pausedScroll !== null) return;
     const scroll = window.scrollY;
     const direction = Math.sign(scroll - lastStaticScroll);
-    let reached = null;
-    let reachedAt = direction > 0 ? -Infinity : Infinity;
     const centers = [];
-    [...original.children].forEach((element, index) => {
+    const slots = [...original.children].map((element, index) => {
       const rect = element.querySelector('[data-card]').getBoundingClientRect();
       const center = scroll + rect.top + rect.height / 2 - window.innerHeight / 2;
       centers.push(center);
-      const crossed = direction > 0
-        ? center > lastStaticScroll && center <= scroll
-        : center < lastStaticScroll && center >= scroll;
-      if (crossed && (direction > 0 ? center > reachedAt : center < reachedAt)) {
-        reached = index;
-        reachedAt = center;
-      }
+      const slotRect = element.getBoundingClientRect();
+      return { index, top: slotRect.top, bottom: slotRect.bottom };
     });
-    if (reached !== null) updateInformation(reached);
+    updateInformation(mostVisibleProject(slots, window.innerHeight, active));
     let position = 0;
     centers.forEach((center, index) => {
       if (scroll >= center) {
@@ -366,7 +346,6 @@ export function createGallery(projects, sound) {
     }
     mode = 'intro';
     changingMode = false;
-    lastPhase = null;
     document.body.dataset.mode = mode;
     hero.hidden = false;
     wrapper.scrollTop = 0;
@@ -386,7 +365,6 @@ export function createGallery(projects, sound) {
     gsap.killTweensOf(hero);
     gsap.set(hero, { clearProps: 'transform' });
     heroDocked = false;
-    lastPhase = null;
     document.querySelectorAll('[data-clone]').forEach((node) => node.remove());
     document.body.classList.toggle('enhanced', !motion.matches);
     hero.hidden = false;

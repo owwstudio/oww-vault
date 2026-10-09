@@ -25,6 +25,7 @@ export function createInspect(projects, { pause, resume, sound }) {
   let returnBounds;
   let destinationBounds;
   let coverState;
+  const desktopPreviewWidth = 1440;
 
   function positionContent() {
     const bounds = expandedBounds();
@@ -32,11 +33,27 @@ export function createInspect(projects, { pause, resume, sound }) {
     content.style.width = `${bounds.width}px`;
     gsap.set(panel, bounds);
     gsap.set(controls, { right, top: Math.max(12, bounds.top - 20) });
+    document.body.style.setProperty('--inspect-controls-right', `${right}px`);
   }
 
   function previewBounds() {
     const rect = content.querySelector('[data-inspect-preview]').getBoundingClientRect();
     return { right: window.innerWidth - rect.right, top: rect.top, width: rect.width, height: rect.height };
+  }
+
+  function sizeDesktopPreview() {
+    const preview = content.querySelector('[data-inspect-preview]');
+    const iframe = preview?.querySelector('[data-desktop-preview]');
+    if (!preview || !iframe) return;
+    const width = preview.getBoundingClientRect().width;
+    if (!width) return;
+    iframe.style.setProperty('--preview-scale', Math.min(1, width / desktopPreviewWidth));
+  }
+
+  function setPreviewLoading(loading) {
+    const loader = content.querySelector('[data-inspect-loader]');
+    if (!loader) return;
+    loader.hidden = !loading;
   }
 
   function prepareInformation() {
@@ -65,6 +82,12 @@ export function createInspect(projects, { pause, resume, sound }) {
     content.inert = false;
     const media = content.querySelector('[data-inspect-media]');
     if (!media || media.hasAttribute('src')) return;
+    if (media.matches('[data-desktop-preview]')) {
+      setPreviewLoading(true);
+      media.addEventListener('load', () => {
+        if (source && !closing) setPreviewLoading(false);
+      }, { once: true });
+    }
     // Start media after expansion; resize keeps the current playback position.
     media.src = media.dataset.src;
     if (media.tagName === 'VIDEO') {
@@ -88,6 +111,9 @@ export function createInspect(projects, { pause, resume, sound }) {
     if (cursorVisible) return;
     cursorVisible = true;
     document.body.classList.add('inspect-cursor-visible');
+    // CSS starts the label hidden; make both opacity and visibility explicit so
+    // entering a card always reveals the custom cursor, not just its state.
+    gsap.set(cursor, { autoAlpha: 1, visibility: 'visible', scale: 1 });
     gsap.to(cursor, { autoAlpha: 1, scale: 1, duration: motion.matches ? 0 : 0.18, overwrite: 'auto' });
   }
 
@@ -134,6 +160,7 @@ export function createInspect(projects, { pause, resume, sound }) {
     }
     content.replaceChildren();
     document.body.classList.remove('inspect-open');
+    document.body.style.removeProperty('--inspect-controls-right');
     resume();
   }
 
@@ -164,7 +191,7 @@ export function createInspect(projects, { pause, resume, sound }) {
   }
 
   function createTransition() {
-    const duration = motion.matches ? 0 : 0.85;
+    const duration = motion.matches ? 0 : 0.75;
     const fadeDuration = motion.matches ? 0 : 0.6;
     return gsap.timeline({ paused: true, onComplete: mountPreview, onReverseComplete: finishClose })
       .fromTo(image, { ...returnBounds, autoAlpha: 1 }, { ...destinationBounds, duration, ease: 'power3.inOut' }, 0)
@@ -188,11 +215,13 @@ export function createInspect(projects, { pause, resume, sound }) {
     content.inert = true;
     prepareInformation();
     positionContent();
+    sizeDesktopPreview();
     const cover = card.querySelector(':scope > img');
     image.replaceChildren();
     if (cover) {
       const snapshot = cover.cloneNode(true);
       snapshot.loading = 'eager';
+      snapshot.style.objectPosition = 'top';
       snapshot.style.transform = getComputedStyle(cover).transform;
       coverState = { element: cover, transform: cover.style.getPropertyValue('transform'), priority: cover.style.getPropertyPriority('transform') };
       // Keep the cover identical at the final handoff, then let hover settle.
@@ -209,6 +238,7 @@ export function createInspect(projects, { pause, resume, sound }) {
     dialog.showModal();
     card.style.visibility = 'hidden';
     closeButton.focus({ preventScroll: true });
+    sizeDesktopPreview();
     destinationBounds = previewBounds();
     sound.play('select');
     animation = createTransition();
@@ -218,7 +248,11 @@ export function createInspect(projects, { pause, resume, sound }) {
   track.addEventListener('pointerover', showCursor);
   track.addEventListener('pointermove', showCursor);
   track.addEventListener('pointerout', (event) => {
-    if (event.target.closest('[data-card]') !== event.relatedTarget?.closest?.('[data-card]')) hideCursor();
+    const card = event.target.closest('[data-card]');
+    const nextCard = event.relatedTarget?.closest?.('[data-card]');
+    // pointerout also fires when moving between the card and its children.
+    // Only hide the custom cursor after leaving the card entirely.
+    if (card && !nextCard) hideCursor();
   });
   track.addEventListener('click', (event) => {
     const card = event.target.closest('[data-card]');
@@ -240,6 +274,7 @@ export function createInspect(projects, { pause, resume, sound }) {
     returnBounds = cardBounds();
     right = returnBounds.right;
     positionContent();
+    sizeDesktopPreview();
     destinationBounds = previewBounds();
     if (motion.matches) {
       gsap.set(panel, expandedBounds());
