@@ -12,6 +12,7 @@ export function createInspect(projects, { pause, resume, sound }) {
   const cursor = document.querySelector('[data-inspect-cursor]');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const hover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const mobileViewport = window.matchMedia('(max-width: 700px)');
   const moveX = gsap.quickTo(cursor, 'x', { duration: 0.12, ease: 'power3.out' });
   const moveY = gsap.quickTo(cursor, 'y', { duration: 0.12, ease: 'power3.out' });
   let source = null;
@@ -127,6 +128,10 @@ export function createInspect(projects, { pause, resume, sound }) {
     return { right: window.innerWidth - rect.right, top: rect.top, width: rect.width, height: rect.height };
   }
 
+  function modalInset() {
+    return mobileViewport.matches ? 16 : returnBounds.right;
+  }
+
   function finishClose() {
     animation?.kill();
     animation = null;
@@ -207,7 +212,7 @@ export function createInspect(projects, { pause, resume, sound }) {
     pause();
     source = card;
     returnBounds = cardBounds();
-    right = returnBounds.right;
+    right = modalInset();
     const index = Number(card.closest('[data-index]').dataset.index);
     const project = projects[index];
     dialog.setAttribute('aria-label', `${project.title} — project preview`);
@@ -272,7 +277,7 @@ export function createInspect(projects, { pause, resume, sound }) {
     const progress = animation.progress();
     animation?.kill();
     returnBounds = cardBounds();
-    right = returnBounds.right;
+    right = modalInset();
     positionContent();
     sizeDesktopPreview();
     destinationBounds = previewBounds();

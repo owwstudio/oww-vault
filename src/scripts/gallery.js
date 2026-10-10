@@ -55,6 +55,13 @@ export function createGallery(projects, sound) {
   let tooltipLayer = 0;
   let soundPosition = null;
   let soundUpdatedAt = 0;
+  let mobileCycle = 0;
+  let mobileBaseTop = 0;
+  let mobileCardAnimators = new WeakMap();
+
+  function isMobile() {
+    return window.matchMedia('(max-width: 700px)').matches;
+  }
 
   function hideTooltip(immediate = false) {
     hoveredItem = null;
@@ -293,7 +300,7 @@ export function createGallery(projects, sound) {
     if (pausedScroll !== null) return;
     // Every ruler tick selects the project named in its hover tooltip.
     index = mod(Math.floor(index), projects.length);
-    if (motion.matches) {
+    if (motion.matches || isMobile()) {
       const rect = original.children[index].querySelector('[data-card]').getBoundingClientRect();
       const top = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2;
       window.scrollTo({ top, behavior: 'instant' });
@@ -309,17 +316,22 @@ export function createGallery(projects, sound) {
   }
 
   function syncStaticInformation(audible = true) {
-    if (!motion.matches || pausedScroll !== null) return;
+    if ((!motion.matches && mode !== 'mobile') || pausedScroll !== null) return;
     const scroll = window.scrollY;
     const direction = Math.sign(scroll - lastStaticScroll);
     const centers = [];
-    const slots = [...original.children].map((element, index) => {
+    const slotElements = mode === 'mobile'
+      ? [...track.querySelectorAll('[data-group] [data-index]')]
+      : [...original.children];
+    const slots = slotElements.map((element) => {
+      const index = Number(element.dataset.index);
       const rect = element.querySelector('[data-card]').getBoundingClientRect();
       const center = scroll + rect.top + rect.height / 2 - window.innerHeight / 2;
       centers.push(center);
       const slotRect = element.getBoundingClientRect();
       return { index, top: slotRect.top, bottom: slotRect.bottom };
     });
+    if (mode === 'mobile') animateMobileCards(slotElements);
     updateInformation(mostVisibleProject(slots, window.innerHeight, active));
     let position = 0;
     centers.forEach((center, index) => {
@@ -333,11 +345,36 @@ export function createGallery(projects, sound) {
     lastStaticScroll = scroll;
   }
 
+  function animateMobileCards(slotElements) {
+    const viewportCenter = window.innerHeight / 2;
+    slotElements.forEach((slotElement) => {
+      const card = slotElement.querySelector('[data-card]');
+      const rect = card.getBoundingClientRect();
+      const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
+      const proximity = clamp(1 - distance / (rect.height + 48));
+      const easedProximity = proximity * proximity * (3 - 2 * proximity);
+      const scale = cardMinWidth + (cardMaxWidth - cardMinWidth) * easedProximity;
+      if (motion.matches) {
+        gsap.set(card, { scaleX: scale });
+        return;
+      }
+      let animate = mobileCardAnimators.get(card);
+      if (!animate) {
+        animate = gsap.quickTo(card, 'scaleX', {
+          duration: 0.42,
+          ease: 'power3.out',
+        });
+        mobileCardAnimators.set(card, animate);
+      }
+      animate(scale);
+    });
+  }
+
   function home() {
     soundPosition = null;
     hideTooltip(true);
     resetNavigationMovement();
-    if (motion.matches) {
+    if (motion.matches || mode === 'mobile') {
       window.scrollTo({ top: 0, behavior: 'instant' });
       lastStaticScroll = window.scrollY;
       updateInformation(0, false);
@@ -366,12 +403,37 @@ export function createGallery(projects, sound) {
     gsap.set(hero, { clearProps: 'transform' });
     heroDocked = false;
     document.querySelectorAll('[data-clone]').forEach((node) => node.remove());
-    document.body.classList.toggle('enhanced', !motion.matches);
+    const mobile = isMobile();
+    const staticGallery = motion.matches || mobile;
+    document.body.classList.toggle('enhanced', !staticGallery);
+    document.body.classList.toggle('mobile-gallery', mobile);
     hero.hidden = false;
     hero.removeAttribute('style');
     information.removeAttribute('style');
     track.removeAttribute('style');
-    original.querySelectorAll('[data-card]').forEach((card) => card.removeAttribute('style'));
+    original.querySelectorAll('[data-card]').forEach((card) => {
+      card.removeAttribute('style');
+      gsap.set(card, { scaleX: 1, clearProps: 'transform' });
+    });
+    if (mobile) {
+      cardMinWidth = 0.84;
+      cardMaxWidth = 1;
+      mobileCardAnimators = new WeakMap();
+      for (let copy = 0; copy < 2; copy += 1) {
+        const clone = original.cloneNode(true);
+        clone.dataset.clone = `mobile-${copy + 1}`;
+        clone.setAttribute('aria-hidden', 'true');
+        clone.querySelectorAll('a, button').forEach((node) => node.tabIndex = -1);
+        track.append(clone);
+      }
+      mode = 'mobile';
+      document.body.dataset.mode = mode;
+      refreshMobileLoop();
+      lastStaticScroll = window.scrollY;
+      updateInformation(active, false);
+      syncStaticInformation(false);
+      return;
+    }
     if (motion.matches) {
       lastStaticScroll = window.scrollY;
       mode = 'static';
@@ -397,6 +459,21 @@ export function createGallery(projects, sound) {
     measure();
     lenis.scrollTo(0, { immediate: true });
     updateInformation(0, false);
+  }
+
+  function refreshMobileLoop() {
+    if (mode !== 'mobile') return;
+    mobileCycle = original.getBoundingClientRect().height;
+    mobileBaseTop = original.getBoundingClientRect().top + window.scrollY;
+  }
+
+  function wrapMobileScroll() {
+    if (mode !== 'mobile' || !mobileCycle) return;
+    const scroll = window.scrollY;
+    const threshold = mobileBaseTop + mobileCycle * 1.5;
+    if (scroll <= threshold) return;
+    window.scrollTo({ top: scroll - mobileCycle, behavior: 'instant' });
+    lastStaticScroll = window.scrollY;
   }
 
   original.addEventListener('focusin', (event) => {
@@ -428,24 +505,30 @@ export function createGallery(projects, sound) {
   motion.addEventListener('change', initialize);
   window.addEventListener('resize', () => {
     soundPosition = null;
-    if (!motion.matches) measure();
+    if (mode === 'mobile') {
+      refreshMobileLoop();
+      syncStaticInformation(false);
+    } else if (!motion.matches) measure();
     else syncStaticInformation(false);
   });
-  window.addEventListener('scroll', () => syncStaticInformation(), { passive: true });
+  window.addEventListener('scroll', () => {
+    if (mode === 'mobile') wrapMobileScroll();
+    syncStaticInformation();
+  }, { passive: true });
   document.addEventListener('visibilitychange', () => { soundPosition = null; });
   inspection = createInspect(projects, {
     sound,
     pause() {
-      pausedScroll = mode === 'static' ? window.scrollY : renderedScroll;
+      pausedScroll = mode === 'static' || mode === 'mobile' ? window.scrollY : renderedScroll;
       // stop/start reset Lenis to native scroll; keep the visual phase frozen.
-      lenis?.stop();
+      if (mode !== 'mobile') lenis?.stop();
       hideTooltip(true);
       resetNavigationMovement();
     },
     resume() {
       const scroll = pausedScroll;
       if (scroll === null) return;
-      if (mode === 'static') {
+      if (mode === 'static' || mode === 'mobile') {
         window.scrollTo({ top: scroll, behavior: 'instant' });
         lastStaticScroll = window.scrollY;
       } else {
@@ -455,7 +538,7 @@ export function createGallery(projects, sound) {
         lenis.animatedScroll = lenis.targetScroll = scroll;
       }
       pausedScroll = null;
-      if (mode !== 'static') render(scroll);
+      if (mode !== 'static' && mode !== 'mobile') render(scroll);
     },
   });
   initialize();
@@ -463,7 +546,8 @@ export function createGallery(projects, sound) {
   gsap.ticker.add((time) => {
     // Also observe the current value here: some embedded/headless browsers
     // update media preferences without dispatching a MediaQueryList event.
-    if ((mode === 'static') !== motion.matches) initialize();
-    if (!motion.matches) lenis.raf(time * 1000);
+    const staticGallery = motion.matches || isMobile();
+    if ((mode === 'static' || mode === 'mobile') !== staticGallery) initialize();
+    if (!staticGallery) lenis.raf(time * 1000);
   });
 }

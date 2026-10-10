@@ -28,6 +28,12 @@ html(lang="en")
                 button(class=cardClass type="button" data-card aria-haspopup="dialog" aria-controls="project-inspect" aria-label=`Inspect ${project.title}`)
                   if project.image
                     img(src=project.image alt=project.imageAlt || project.title width="1200" height="1000" loading=index === 0 ? 'eager' : 'lazy' decoding="async")
+                .project-card-information(aria-label=`${project.title} project information` data-card-information)
+                  h2= project.title
+                  p= project.description
+                  ul.project-card-information__tags
+                    each tag in project.tags
+                      li= tag
       - const ticksPerProject = 8
       nav.project-navigation(aria-label="Project navigation" data-project-navigation style=`--project-count: ${projects.length}; --nav-ticks: ${ticksPerProject}`)
         .project-navigation__viewport
